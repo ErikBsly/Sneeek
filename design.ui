@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MatrixMaster</string>
+   <string>Leets Plee Sneeek</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QGroupBox" name="groupBox">
@@ -52,7 +52,7 @@
       <string>127.0.0.1</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton">
+    <widget class="QPushButton" name="pushButtonConnectToHost">
      <property name="geometry">
       <rect>
        <x>210</x>
@@ -104,7 +104,7 @@
       <string>Name</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit">
+    <widget class="QLineEdit" name="lineEditName">
      <property name="geometry">
       <rect>
        <x>80</x>
@@ -113,6 +113,9 @@
        <height>20</height>
       </rect>
      </property>
+     <property name="text">
+      <string>Dummie</string>
+     </property>
     </widget>
    </widget>
    <widget class="QTableWidget" name="tableWidget_Dashboard">
@@ -120,25 +123,51 @@
      <rect>
       <x>570</x>
       <y>190</y>
-      <width>291</width>
-      <height>71</height>
+      <width>321</width>
+      <height>171</height>
      </rect>
     </property>
+    <property name="showGrid">
+     <bool>false</bool>
+    </property>
+    <property name="rowCount">
+     <number>4</number>
+    </property>
+    <property name="columnCount">
+     <number>3</number>
+    </property>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <column/>
+    <column/>
+    <column/>
    </widget>
    <widget class="QLabel" name="label_DisplayImage">
     <property name="geometry">
      <rect>
       <x>20</x>
       <y>10</y>
-      <width>512</width>
-      <height>512</height>
+      <width>514</width>
+      <height>514</height>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 1px solid black;</string>
+     <string notr="true">border: 1px solid #444;</string>
     </property>
     <property name="text">
-     <string>TextLabel</string>
+     <string>Snake Canvas!</string>
+    </property>
+   </widget>
+   <widget class="QTextBrowser" name="textBrowserChat">
+    <property name="geometry">
+     <rect>
+      <x>570</x>
+      <y>380</y>
+      <width>321</width>
+      <height>141</height>
+     </rect>
     </property>
    </widget>
   </widget>
