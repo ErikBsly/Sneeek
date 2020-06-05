@@ -28,7 +28,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
     def initGameCanvas(self):
         #img = np.random.randint(256, size=(64, 64, 3), dtype=np.uint8)
-        img = 255*np.ones((64, 64, 3), dtype=np.uint8)
+        img = 255*np.ones((64, 64, 3), dtype=np.uint8) # white!
 
         self.qimg = QImage(img.data, img.shape[1], img.shape[0], img.strides[0], QImage.Format_RGB888)
         self.label_DisplayImage.setPixmap(QPixmap.fromImage(self.qimg).scaled(512, 512))

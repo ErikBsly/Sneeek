@@ -119,13 +119,19 @@
     </widget>
    </widget>
    <widget class="QTableWidget" name="tableWidget_Dashboard">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>570</x>
-      <y>190</y>
+      <y>170</y>
       <width>321</width>
-      <height>171</height>
+      <height>151</height>
      </rect>
+    </property>
+    <property name="alternatingRowColors">
+     <bool>true</bool>
     </property>
     <property name="showGrid">
      <bool>false</bool>
@@ -164,9 +170,19 @@
     <property name="geometry">
      <rect>
       <x>570</x>
-      <y>380</y>
+      <y>330</y>
       <width>321</width>
-      <height>141</height>
+      <height>161</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditChatline">
+    <property name="geometry">
+     <rect>
+      <x>570</x>
+      <y>500</y>
+      <width>321</width>
+      <height>20</height>
      </rect>
     </property>
    </widget>
