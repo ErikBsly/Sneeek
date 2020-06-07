@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Leets Plee Sneeek</string>
+   <string>Host Sneeek</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label_DisplayImage">
@@ -28,6 +28,22 @@
     </property>
     <property name="text">
      <string>Snake Canvas!</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonRestart">
+    <property name="geometry">
+     <rect>
+      <x>550</x>
+      <y>10</y>
+      <width>191</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font-size: 24pt;</string>
+    </property>
+    <property name="text">
+     <string>Restart</string>
     </property>
    </widget>
   </widget>

@@ -18,6 +18,10 @@ class Ui_MainWindow(object):
         self.label_DisplayImage.setGeometry(QtCore.QRect(20, 10, 514, 514))
         self.label_DisplayImage.setStyleSheet("border: 1px solid #444;")
         self.label_DisplayImage.setObjectName("label_DisplayImage")
+        self.pushButtonRestart = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButtonRestart.setGeometry(QtCore.QRect(550, 10, 191, 71))
+        self.pushButtonRestart.setStyleSheet("font-size: 24pt;")
+        self.pushButtonRestart.setObjectName("pushButtonRestart")
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -28,6 +32,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Leets Plee Sneeek"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Host Sneeek"))
         self.label_DisplayImage.setText(_translate("MainWindow", "Snake Canvas!"))
+        self.pushButtonRestart.setText(_translate("MainWindow", "Restart"))
 
