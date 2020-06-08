@@ -80,11 +80,18 @@ class MyApp(QMainWindow, Ui_MainWindow):
         self.gameTimer.start(50)
         self.Server = None
         self.player = []
+        self.max_players = 6
+        self.playerColor = [
+            (255, 64, 64),
+            (64, 255, 64),
+            (64, 64, 255),
+            (255, 196, 0)
+        ]
 
         self.gridSize = (64, 64)
         self.gameGrid = SneeekGrid(self.gridSize)
         self.gridColors = np.zeros((*self.gridSize, 3), dtype=np.uint8)
-        self.gameHasStarted = True
+        self.gameHasStarted = False
         self.lengthGainPerEat = 3
 
         # connect
@@ -98,9 +105,9 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
     def initServer(self):
         self.Server = QTcpServer(self)
-        address = QHostAddress('127.0.0.1')
+        # address = QHostAddress('127.0.0.1')
         port = 8000
-        if self.Server.listen(address, port):
+        if self.Server.listen(port=port):
             print("Creating server...")
             self.Server.newConnection.connect(self.handleNewConnection)
         else:
@@ -132,13 +139,15 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
             self.player[idx].id = new_id
             self.player[idx].name = "abc"
-            self.player[idx].color = np.random.default_rng().integers(128, 255, size=3)
+            self.player[idx].color = self.playerColor[self.player[idx].id]
             self.player[idx].pos = self.gameGrid.randomEmptyField()
 
             self.gameGrid.grid[self.player[idx].pos] = 1
             self.gameGrid.owner[self.player[idx].pos] = self.player[idx].id
            
             self.writeToClients("gridsize,{},{}".format(*self.gameGrid._gridSize))
+
+            self.gameHasStarted = True
 
     @pyqtSlot()
     def handleDisconnection(self):
@@ -176,7 +185,6 @@ class MyApp(QMainWindow, Ui_MainWindow):
         for i in range(len(self.player)):
             self.player[i].socket.write(msg)
        
-
     def sendImageToClients(self):
         prefix = "canvas,{},{},".format(*self.gameGrid._gridSize).encode()
         content = self.gridColors.tobytes()
@@ -191,7 +199,6 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
 
     def processGameStep(self):
-
         if self.gameHasStarted:
             self.gameGrid.reduceLifeTimeByOne()
 
@@ -205,10 +212,12 @@ class MyApp(QMainWindow, Ui_MainWindow):
                         if not 0 <= newy < self.gridSize[0]:
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
+                            self.player[i].socket.write("gameover".encode())
                             continue
                         elif self.gameGrid.grid[newpos] > 0:
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
+                            self.player[i].socket.write("gameover".encode())
                             continue
                     #--------------------------------------
                     if v in ["left", "right"]:
@@ -217,10 +226,12 @@ class MyApp(QMainWindow, Ui_MainWindow):
                         if not 0 <= newx < self.gridSize[1]: 
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
+                            self.player[i].socket.write("gameover".encode())
                             continue
                         elif self.gameGrid.grid[newpos] > 0:
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
+                            self.player[i].socket.write("gameover".encode())
                             continue
                     #--------------------------------------
                     # eat!
@@ -236,13 +247,13 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
 
         color_food = (0, 0, 0) # black
-        blue = (0, 0, 255)
 
         self.gridColors.fill(255) # all white
-
+        # draw food
         self.gridColors[self.gameGrid.grid == -1] = color_food
-        self.gridColors[self.gameGrid.owner == 0] = blue
-
+        # draw snakes
+        for i in range(len(self.player)):
+            self.gridColors[self.gameGrid.owner == self.player[i].id] = self.player[i].color
 
 
         self.sendImageToClients()

@@ -97,6 +97,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
             return
         
         msg = str(rawData, encoding="utf-8")
+        
 
         if msg.startswith("gridsize"):
             self.gridSize = (int(msg.split(",")[1]), int(msg.split(",")[2]))
