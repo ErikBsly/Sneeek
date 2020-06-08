@@ -41,12 +41,13 @@ class Ui_MainWindow(object):
         self.lineEditName.setObjectName("lineEditName")
         self.tableWidget_Dashboard = QtWidgets.QTableWidget(self.centralwidget)
         self.tableWidget_Dashboard.setEnabled(True)
-        self.tableWidget_Dashboard.setGeometry(QtCore.QRect(570, 170, 321, 151))
-        self.tableWidget_Dashboard.setAlternatingRowColors(True)
+        self.tableWidget_Dashboard.setGeometry(QtCore.QRect(570, 180, 321, 131))
         self.tableWidget_Dashboard.setShowGrid(False)
-        self.tableWidget_Dashboard.setRowCount(4)
+        self.tableWidget_Dashboard.setRowCount(6)
         self.tableWidget_Dashboard.setColumnCount(3)
         self.tableWidget_Dashboard.setObjectName("tableWidget_Dashboard")
+        self.tableWidget_Dashboard.horizontalHeader().setVisible(False)
+        self.tableWidget_Dashboard.verticalHeader().setDefaultSectionSize(23)
         self.label_DisplayImage = QtWidgets.QLabel(self.centralwidget)
         self.label_DisplayImage.setGeometry(QtCore.QRect(20, 10, 514, 514))
         self.label_DisplayImage.setStyleSheet("border: 1px solid #444;")
@@ -77,4 +78,10 @@ class Ui_MainWindow(object):
         self.label_2.setText(_translate("MainWindow", "Name"))
         self.lineEditName.setText(_translate("MainWindow", "Dummie"))
         self.label_DisplayImage.setText(_translate("MainWindow", "Snake Canvas!"))
+        self.textBrowserChat.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Chat with us! &lt;3</p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"))
 

@@ -21,20 +21,7 @@ class SneeekPlayer:
         self.length = 1
         self.pos = None
         self.alive = True
-        # self.vstr = {
-        #     "up": np.array([-1, 0]),
-        #     "down": np.array([1, 0]),
-        #     "left": np.array([0, -1]),
-        #     "right": np.array([0, 1])
-        # }
-
-    def write(self, msg):
-        if not self.socket.connected: return
-        self.socket.write(msg)
-
-
-
-
+        self.rawData = b''
 
 
 class SneeekGrid:
@@ -83,10 +70,11 @@ class MyApp(QMainWindow, Ui_MainWindow):
         self.max_players = 6
         self.playerColor = [
             (255, 64, 64),
-            (64, 255, 64),
-            (64, 64, 255),
+            (32, 128, 32),
+            (64, 64, 196),
             (255, 196, 0)
         ]
+        self.port = 8000
 
         self.gridSize = (64, 64)
         self.gameGrid = SneeekGrid(self.gridSize)
@@ -105,13 +93,11 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
     def initServer(self):
         self.Server = QTcpServer(self)
-        # address = QHostAddress('127.0.0.1')
-        port = 8000
-        if self.Server.listen(port=port):
+        if self.Server.listen(port = self.port):
             print("Creating server...")
             self.Server.newConnection.connect(self.handleNewConnection)
         else:
-            print("Can't listen on port {}".format(port))
+            print("Can't listen on port {}".format(self.port))
             self.close()
 
     def initGame(self):
@@ -147,8 +133,6 @@ class MyApp(QMainWindow, Ui_MainWindow):
            
             self.writeToClients("gridsize,{},{}".format(*self.gameGrid._gridSize))
 
-            self.gameHasStarted = True
-
     @pyqtSlot()
     def handleDisconnection(self):
         sender = self.sender()
@@ -160,30 +144,53 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot()
     def readBuffer(self):
-        sender = self.sender()
         # find which palyer has sent the signal. Then convert one-element list to scalar
+        sender = self.sender()
         idx = [i for i,p in enumerate(self.player) if p.socket == sender][0]
 
+        # append to buffer if there is some leftover from the last transmission
+        self.player[idx].rawData += self.player[idx].socket.readAll()
 
-        rawData = self.player[idx].socket.readAll()
-        if rawData.isEmpty(): return
-        msg = str(rawData, encoding="utf-8")
-        # print(msg)
+        commands = self.player[idx].rawData.split(b'\r')
+        for command in commands:
+            #command = self.player[idx].socket.readAll()
+            msg = str(command, encoding="utf-8")
+            # print(msg)
 
-        if msg.startswith("keypress"):
-            self.player[idx].v = msg.split(",")[1]
+            if msg.startswith("keypress"):
+                self.player[idx].v = msg.split(",")[1]
 
-        if msg.startswith("playername"):
-            self.player[idx].name = msg.split(",")[1]
+            if msg.startswith("playername"):
+                self.player[idx].name = msg.split(",")[1]
 
-        if msg.startswith("ready"):
-            self.player[idx].isReady = True if msg.split(",")[1]=="1" else False # ready,1 or ready,0
+            if msg.startswith("ready"):
+                self.player[idx].isReady = True if msg.split(",")[1]=="1" else False # ready,1 or ready,0
+
+            if msg.startswith("chatmsg"):
+                newmsg = "chatmsg," + self.player[idx].name + ": " + msg[8:]
+                self.writeToClients(newmsg)
+
+            if msg.startswith("start"):
+                allready = np.all([self.player[i].isReady for i in range(len(self.player))])
+                     
+                if allready:
+                    self.gameHasStarted = True
+                    print("Start!")
+
+        # if command transmission was not finished, so it can be completed on the next incoming transmission
+        self.player[idx].rawData = commands[-1] 
 
     @pyqtSlot()
     def writeToClients(self, msg, encode=True):
         if encode: msg = msg.encode()
+        if msg[-1] != b'\r': msg += b'\r'
         for i in range(len(self.player)):
             self.player[i].socket.write(msg)
+
+    def writeToPlayer(self, idx, msg, encode=True):
+        if encode: msg = msg.encode()
+        if msg[-1] != b'\r': msg += b'\r'
+        self.player[idx].socket.write(msg)
        
     def sendImageToClients(self):
         prefix = "canvas,{},{},".format(*self.gameGrid._gridSize).encode()
@@ -193,7 +200,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
     def sendScoreBoardToClients(self):
         msg = "scoreboard"
         for i in range(len(self.player)):
-            msg += ",{},{},{},{}".format(self.player[i].name, self.player[i].score, self.player[i].isReady, self.player[i].color)
+            msg += ",{},{},{},{}".format(self.player[i].name, self.player[i].length, self.player[i].isReady, str(self.player[i].color).replace("(", "").replace(")", ""))
 
         self.writeToClients(msg)
 
@@ -212,12 +219,12 @@ class MyApp(QMainWindow, Ui_MainWindow):
                         if not 0 <= newy < self.gridSize[0]:
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
-                            self.player[i].socket.write("gameover".encode())
+                            self.writeToPlayer(i, "gameover")
                             continue
                         elif self.gameGrid.grid[newpos] > 0:
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
-                            self.player[i].socket.write("gameover".encode())
+                            self.writeToPlayer(i, "gameover")
                             continue
                     #--------------------------------------
                     if v in ["left", "right"]:
@@ -226,12 +233,12 @@ class MyApp(QMainWindow, Ui_MainWindow):
                         if not 0 <= newx < self.gridSize[1]: 
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
-                            self.player[i].socket.write("gameover".encode())
+                            self.writeToPlayer(i, "gameover")
                             continue
                         elif self.gameGrid.grid[newpos] > 0:
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
-                            self.player[i].socket.write("gameover".encode())
+                            self.writeToPlayer(i, "gameover")
                             continue
                     #--------------------------------------
                     # eat!
@@ -245,7 +252,6 @@ class MyApp(QMainWindow, Ui_MainWindow):
                     self.gameGrid.grid[self.player[i].pos] = self.player[i].length
                     self.gameGrid.owner[self.player[i].pos] = self.player[i].id
 
-
         color_food = (0, 0, 0) # black
 
         self.gridColors.fill(255) # all white
@@ -257,6 +263,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
 
         self.sendImageToClients()
+        self.sendScoreBoardToClients()
 
 # # # # # # # # # # # # # # # # # # # # #
 
