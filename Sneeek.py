@@ -48,8 +48,13 @@ class MyApp(QMainWindow, Ui_MainWindow):
         self.label_DisplayImage.setPixmap(QPixmap.fromImage(self.qimg).scaled(self.label_DisplayImage.size()))
 
     @pyqtSlot()
+    def reconnectToHost(self):
+        self.socket.disconnect()
+        self.pushButtonConnectToHost.click()
+
+    @pyqtSlot()
     def connectToHost(self):
-        ip = self.lineEditHostIP.text()
+        ip = self.lineEditHostIP.text().strip()
         port = 8000
         self.socket.connectToHost(ip, port)
 
@@ -132,7 +137,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
                     for i in range(n):
                     	names[i], scores[i], isreadys[i], colors[i] = items[i*6], items[i*6+1], items[i*6+2] == "True", (int(items[i*6+3]), int(items[i*6+4]), int(items[i*6+5]))
 
-                    idx = np.argsort(scores)
+                    idx = np.flip(np.argsort(scores), axis=0)
                     names, scores, isreadys, colors = np.array(names)[idx], np.array(scores)[idx], np.array(isreadys)[idx], np.array(colors)[idx]
 
                     for i in range(n):

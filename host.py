@@ -44,8 +44,9 @@ class SneeekGrid:
             pos = np.random.default_rng().integers(self._gridSize[1]), np.random.default_rng().integers(self._gridSize[0])
         return pos
 
-    def placeTarget(self):
-        self.grid[self.randomEmptyField()] = -1
+    def placeTarget(self, n=1):
+        for i in range(n):
+            self.grid[self.randomEmptyField()] = -1
 
     def reduceLifeTimeByOne(self):
         self.grid[self.grid > 0] -= 1
@@ -102,7 +103,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
     def initGame(self):
         self.gameGrid.clearGrid()
-        self.gameGrid.placeTarget()
+        self.gameGrid.placeTarget(3)
 
     @pyqtSlot()
     def handleNewConnection(self):
@@ -175,7 +176,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
                 self.player[idx].isReady = True if msg.split(",")[1]=="1" else False # ready,1 or ready,0
 
             if msg.startswith("chatmsg"):
-                newmsg = "chatmsg," + self.player[idx].name + ": " + msg[8:]
+                newmsg = "chatmsg,<b>" + self.player[idx].name + ":</b> " + msg[8:]
                 self.writeToClients(newmsg)
 
             if msg.startswith("start"):
