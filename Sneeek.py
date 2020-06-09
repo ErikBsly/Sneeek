@@ -86,19 +86,29 @@ class MyApp(QMainWindow, Ui_MainWindow):
     def readBuffer(self):
         # append to buffer if there is some leftover from the last transmission
         self.rawData += self.socket.readAll()
-        if self.rawData.isEmpty(): return
-
+        
+        # every command ends with "\r"
         commands = self.rawData.split(b'\r')
+        # if command transmission was not finished, so it can be completed on the next incoming transmission
+        self.rawData = commands[-1]
+        if commands[-1] != b'': del commands[-1]            
 
         for command in commands:
             # when image data is sent
             if command[0:6] == b'canvas': # b'...': bytes
                 offset = 9 + len(str(self.gridSize[0])) + len(str(self.gridSize[1]))
+                # try:
                 self.gridColors = np.frombuffer(command[offset:], np.uint8).reshape((*self.gridSize), 3)
+                # except:
+                #     print(len(commands), self.rawData)
+                #     print()
+                #     print(commands[0])
+                #     print()
+                #     print(commands[1])
 
-                #a, b = np.random.randint(64, size=2)
+                # a, b = np.random.randint(64, size=2)
                 # print(self.gridColors[a,b])
-                #self.gridColors[a, b] = [255, 255, 255]
+                # self.gridColors[a, b] = [255, 255, 255]
 
                 self.qimg = QImage(self.gridColors.data, self.gridColors.shape[1], self.gridColors.shape[0], self.gridColors.strides[0], QImage.Format_RGB888)
                 self.updateGameCanvas()
@@ -109,7 +119,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
                 if msg.startswith("gridsize"):
                     self.gridSize = (int(msg.split(",")[1]), int(msg.split(",")[2]))
                     self.gridColors = np.zeros((*self.gridSize, 3), dtype=np.uint8)
-                    print("Grid size: {} x {}".format(*self.gridSize))
+                    #print("Grid size: {} x {}".format(*self.gridSize))
                 if msg.startswith("gameover"):
                     print("Game over!")
                 if msg.startswith("scoreboard"):
@@ -118,7 +128,9 @@ class MyApp(QMainWindow, Ui_MainWindow):
                     if len(items) % 6 != 0: continue # if some error occurs...
                     n = len(items) // 6
                     names, scores, isreadys, colors = [""]*n, [0]*n, [0]*n, [0]*n
-                    for i in range(n): names[i], scores[i], isreadys[i], colors[i] = items[i*n], items[i*n+1], items[i*n+2] == "True", (int(items[i*n+3]), int(items[i*n+4]), int(items[i*n+5]))
+                    
+                    for i in range(n):
+                    	names[i], scores[i], isreadys[i], colors[i] = items[i*6], items[i*6+1], items[i*6+2] == "True", (int(items[i*6+3]), int(items[i*6+4]), int(items[i*6+5]))
 
                     idx = np.argsort(scores)
                     names, scores, isreadys, colors = np.array(names)[idx], np.array(scores)[idx], np.array(isreadys)[idx], np.array(colors)[idx]
@@ -130,9 +142,6 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
                 if msg.startswith("chatmsg"):
                     self.textBrowserChat.append(msg[8:])
-
-        # if command transmission was not finished, so it can be completed on the next incoming transmission
-        self.rawData = commands[-1] 
 
 
 

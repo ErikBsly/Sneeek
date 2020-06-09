@@ -138,9 +138,12 @@ class MyApp(QMainWindow, Ui_MainWindow):
         sender = self.sender()
 
         for i in range(len(self.player)):
-            if self.player[i].socket == sender:
-                print("Disconnection of player {} with ip {}".format(self.player[i].id, self.player[i].socket.peerAddress().toString()))
-                del self.player[i]
+            try:
+                if self.player[i].socket == sender:
+                    print("Disconnection of player {} with ip {}".format(self.player[i].id, self.player[i].socket.peerAddress().toString()))
+                    del self.player[i]
+            except:
+                print("Disconnection error: ", len(self.player), i)
 
     @pyqtSlot()
     def readBuffer(self):
@@ -150,8 +153,13 @@ class MyApp(QMainWindow, Ui_MainWindow):
 
         # append to buffer if there is some leftover from the last transmission
         self.player[idx].rawData += self.player[idx].socket.readAll()
-
         commands = self.player[idx].rawData.split(b'\r')
+        # print(commands)
+        # if command transmission was not finished, so it can be completed on the next incoming transmission
+        self.player[idx].rawData = commands[-1]
+        if commands[-1] != b'': del commands[-1]
+
+        
         for command in commands:
             #command = self.player[idx].socket.readAll()
             msg = str(command, encoding="utf-8")
@@ -177,8 +185,6 @@ class MyApp(QMainWindow, Ui_MainWindow):
                     self.gameHasStarted = True
                     print("Start!")
 
-        # if command transmission was not finished, so it can be completed on the next incoming transmission
-        self.player[idx].rawData = commands[-1] 
 
     @pyqtSlot()
     def writeToClients(self, msg, encode=True):
@@ -200,7 +206,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
     def sendScoreBoardToClients(self):
         msg = "scoreboard"
         for i in range(len(self.player)):
-            msg += ",{},{},{},{}".format(self.player[i].name, self.player[i].length, self.player[i].isReady, str(self.player[i].color).replace("(", "").replace(")", ""))
+            msg += ",{},{},{},{},{},{}".format(self.player[i].name, self.player[i].length, self.player[i].isReady, *self.player[i].color)
 
         self.writeToClients(msg)
 
