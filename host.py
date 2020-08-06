@@ -23,6 +23,19 @@ class SneeekPlayer:
         self.alive = True
         self.rawData = b''
 
+    def changeDirection(self, vnew, safemode=True):
+        """
+        safemode: you can't accidentally run backwards into yourself
+        with length==1, you can always change to every direction
+        """
+        if safemode and self.length != 1:
+            if vnew == "up"     and self.v != "down":   self.v = vnew
+            if vnew == "down"   and self.v != "up":     self.v = vnew
+            if vnew == "right"  and self.v != "left":   self.v = vnew
+            if vnew == "left"   and self.v != "right":  self.v = vnew
+        else:
+            self.v = vnew
+
 
 class SneeekGrid:
     def __init__(self, gridSize):
@@ -167,7 +180,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
             # print(msg)
 
             if msg.startswith("keypress"):
-                self.player[idx].v = msg.split(",")[1]
+            	self.player[idx].changeDirection(msg.split(",")[1])
 
             if msg.startswith("playername"):
                 self.player[idx].name = msg.split(",")[1]
