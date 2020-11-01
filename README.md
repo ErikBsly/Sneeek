@@ -9,7 +9,7 @@
 ## Short setup
 - Host launches `host.py`
 - Clients launch `Sneeek.py`
--- Insert host IP and chose your name
--- Connect
--- Check the ready button and press play
+    - Insert host IP and chose your name
+    - Connect
+    - Check the ready button and press play
 - Enjoy! :)
