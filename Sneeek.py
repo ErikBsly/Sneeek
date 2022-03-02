@@ -1,20 +1,19 @@
 import numpy as np 
 import os, sys
+import getpass
 
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui, QtCore, uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtCore import QTimer, pyqtSignal, pyqtSlot, QByteArray
 from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
-from design import Ui_MainWindow
 
 
-
-class MyApp(QMainWindow, Ui_MainWindow):
+class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
+        uic.loadUi("design.ui", self)
         #self.setWindowIcon(QtGui.QIcon("jo.ico"))
         # vars
         self.randomTimer = QTimer()
@@ -33,6 +32,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
         # setup stuff
         self.initGameCanvas()
         #self.randomTimer.start(10)
+        self.lineEditName.setText(getpass.getuser())
 
     def initGameCanvas(self):
         #img = np.random.randint(256, size=(64, 64, 3), dtype=np.uint8)
@@ -103,7 +103,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
             if command[0:6] == b'canvas': # b'...': bytes
                 offset = 9 + len(str(self.gridSize[0])) + len(str(self.gridSize[1]))
                 # try:
-                self.gridColors = np.frombuffer(command[offset:], np.uint8).reshape((*self.gridSize), 3)
+                self.gridColors = np.frombuffer(command[offset:], np.uint8).reshape(*self.gridSize, 3)
                 # except:
                 #     print(len(commands), self.rawData)
                 #     print()
@@ -135,7 +135,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
                     names, scores, isreadys, colors = [""]*n, [0]*n, [0]*n, [0]*n
                     
                     for i in range(n):
-                    	names[i], scores[i], isreadys[i], colors[i] = items[i*6], items[i*6+1], items[i*6+2] == "True", (int(items[i*6+3]), int(items[i*6+4]), int(items[i*6+5]))
+                        names[i], scores[i], isreadys[i], colors[i] = items[i*6], items[i*6+1], items[i*6+2] == "True", (int(items[i*6+3]), int(items[i*6+4]), int(items[i*6+5]))
 
                     idx = np.flip(np.argsort(scores), axis=0)
                     names, scores, isreadys, colors = np.array(names)[idx], np.array(scores)[idx], np.array(isreadys)[idx], np.array(colors)[idx]

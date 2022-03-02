@@ -2,13 +2,11 @@
 import numpy as np
 import sys, os
 
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, uic
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtCore import QTimer, pyqtSignal, pyqtSlot, QByteArray, QDataStream, QIODevice
 from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
-
-from design_host import Ui_MainWindow
 
 class SneeekPlayer:
     def __init__(self):
@@ -40,9 +38,9 @@ class SneeekPlayer:
 class SneeekGrid:
     def __init__(self, gridSize):
         self._gridSize = gridSize
-        # self.grid = np.zeros((*self._gridSize, 2), dtype=np.int) # 2 to assign a tuple (player, lifetime) to every grid site
-        self.grid = np.zeros(self._gridSize, dtype=np.int)
-        self.owner = -1 * np.ones(self._gridSize, dtype=np.int)
+        # self.grid = np.zeros((*self._gridSize, 2), dtype=int) # 2 to assign a tuple (player, lifetime) to every grid site
+        self.grid = np.zeros(self._gridSize, dtype=int)
+        self.owner = -1 * np.ones(self._gridSize, dtype=int)
 
     def clearGrid(self):
         self.grid.fill(0)
@@ -58,7 +56,7 @@ class SneeekGrid:
         return pos
 
     def placeTarget(self, n=1):
-        for i in range(n):
+        for _ in range(n):
             self.grid[self.randomEmptyField()] = -1
 
     def reduceLifeTimeByOne(self):
@@ -71,10 +69,10 @@ class SneeekGrid:
 
 
 
-class MyApp(QMainWindow, Ui_MainWindow):
+class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
+        uic.loadUi("design_host.ui", self)
 
         # vars
         self.gameTimer = QTimer()
@@ -180,7 +178,7 @@ class MyApp(QMainWindow, Ui_MainWindow):
             # print(msg)
 
             if msg.startswith("keypress"):
-            	self.player[idx].changeDirection(msg.split(",")[1])
+                self.player[idx].changeDirection(msg.split(",")[1])
 
             if msg.startswith("playername"):
                 self.player[idx].name = msg.split(",")[1]
