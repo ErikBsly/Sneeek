@@ -1,5 +1,5 @@
 import numpy as np 
-import os, sys
+import sys
 import getpass
 
 from PyQt5 import QtWidgets, QtGui, QtCore, uic
@@ -8,6 +8,13 @@ from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtCore import QTimer, pyqtSignal, pyqtSlot, QByteArray
 from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
+# keys for chaning directions
+KEY_MAPPING = {
+    QtCore.Qt.Key_Up: "keypress,up",
+    QtCore.Qt.Key_Down: "keypress,down",
+    QtCore.Qt.Key_Right: "keypress,right",
+    QtCore.Qt.Key_Left: "keypress,left"
+}
 
 
 class MyApp(QMainWindow):
@@ -41,16 +48,19 @@ class MyApp(QMainWindow):
         self.qimg = QImage(img.data, img.shape[1], img.shape[0], img.strides[0], QImage.Format_RGB888)
         self.label_DisplayImage.setPixmap(QPixmap.fromImage(self.qimg).scaled(512, 512))
 
+
     @pyqtSlot()
     def updateGameCanvas(self):
         # c = QColor(0, 128, 0) # darkgreen
         # for r, c in np.random.randint(64, size=(15,2)): self.qimg.setPixelColor(r, c, 2)
         self.label_DisplayImage.setPixmap(QPixmap.fromImage(self.qimg).scaled(self.label_DisplayImage.size()))
 
+
     @pyqtSlot()
     def reconnectToHost(self):
         self.socket.disconnect()
         self.pushButtonConnectToHost.click()
+
 
     @pyqtSlot()
     def connectToHost(self):
@@ -67,10 +77,12 @@ class MyApp(QMainWindow):
             self.writeToHost("playername,{}".format(self.lineEditName.text()))
             self.readyStateChanged()
 
+
     @pyqtSlot()
     def sendChatMsg(self):
         self.writeToHost("chatmsg,"+self.lineEditChatline.text())
         self.lineEditChatline.clear()
+
 
     @pyqtSlot()
     def writeToHost(self, msg):
@@ -78,14 +90,17 @@ class MyApp(QMainWindow):
         if msg[-1] != "\r": msg += "\r"
         self.socket.write(msg.encode())
 
+
     @pyqtSlot()
     def readyStateChanged(self):
         msg = "ready,1" if self.checkBoxReady.isChecked() else "ready,0"
         self.writeToHost(msg)
 
+
     @pyqtSlot()
     def startButtonPressed(self):
-        self.writeToHost("start")
+        self.writeToHost("startgame")
+
 
     @pyqtSlot()
     def readBuffer(self):
@@ -96,24 +111,14 @@ class MyApp(QMainWindow):
         commands = self.rawData.split(b'\r')
         # if command transmission was not finished, so it can be completed on the next incoming transmission
         self.rawData = commands[-1]
-        if commands[-1] != b'': del commands[-1]            
+        if commands[-1] != b'':
+            del commands[-1]            
 
         for command in commands:
             # when image data is sent
             if command[0:6] == b'canvas': # b'...': bytes
                 offset = 9 + len(str(self.gridSize[0])) + len(str(self.gridSize[1]))
-                # try:
                 self.gridColors = np.frombuffer(command[offset:], np.uint8).reshape(*self.gridSize, 3)
-                # except:
-                #     print(len(commands), self.rawData)
-                #     print()
-                #     print(commands[0])
-                #     print()
-                #     print(commands[1])
-
-                # a, b = np.random.randint(64, size=2)
-                # print(self.gridColors[a,b])
-                # self.gridColors[a, b] = [255, 255, 255]
 
                 self.qimg = QImage(self.gridColors.data, self.gridColors.shape[1], self.gridColors.shape[0], self.gridColors.strides[0], QImage.Format_RGB888)
                 self.updateGameCanvas()
@@ -125,49 +130,40 @@ class MyApp(QMainWindow):
                     self.gridSize = (int(msg.split(",")[1]), int(msg.split(",")[2]))
                     self.gridColors = np.zeros((*self.gridSize, 3), dtype=np.uint8)
                     #print("Grid size: {} x {}".format(*self.gridSize))
-                if msg.startswith("gameover"):
+                elif msg.startswith("gameover"):
                     print("Game over!")
-                if msg.startswith("scoreboard"):
+                elif msg.startswith("scoreboard"):
                     self.tableWidget_Dashboard.clearContents()
                     items = msg.split(",")[1:]
-                    if len(items) % 6 != 0: continue # if some error occurs...
+                    if len(items) % 6 != 0: # 3 + 3tuple
+                        print("warning: not 6 items")
+                        continue # if some error occurs...
                     n = len(items) // 6
                     names, scores, isreadys, colors = [""]*n, [0]*n, [0]*n, [0]*n
                     
                     for i in range(n):
                         names[i], scores[i], isreadys[i], colors[i] = items[i*6], items[i*6+1], items[i*6+2] == "True", (int(items[i*6+3]), int(items[i*6+4]), int(items[i*6+5]))
 
-                    idx = np.flip(np.argsort(scores), axis=0)
-                    names, scores, isreadys, colors = np.array(names)[idx], np.array(scores)[idx], np.array(isreadys)[idx], np.array(colors)[idx]
+                    # sort player stats by score
+                    idx = np.flip(np.argsort(scores))
+                    names, scores, isreadys, colors = [names[i] for i in idx], [scores[i] for i in idx], [isreadys[i] for i in idx], [colors[i] for i in idx]
 
                     for i in range(n):
                         self.tableWidget_Dashboard.setItem(i, 0, QTableWidgetItem(names[i]))
                         self.tableWidget_Dashboard.setItem(i, 1, QTableWidgetItem(str(scores[i])))
                         self.tableWidget_Dashboard.setItem(i, 2, QTableWidgetItem("ready" if isreadys[i] else ""))
 
-                if msg.startswith("chatmsg"):
+                elif msg.startswith("chatmsg"):
                     self.textBrowserChat.append(msg[8:])
-
 
 
 
     @pyqtSlot()
     def keyPressEvent(self, event):
-        key = event.key()
-        msg = ""
-        if key == QtCore.Qt.Key_Up:    msg = "keypress,up"
-        if key == QtCore.Qt.Key_Down:  msg = "keypress,down"
-        if key == QtCore.Qt.Key_Right: msg = "keypress,right"
-        if key == QtCore.Qt.Key_Left:  msg = "keypress,left"
+        msg = KEY_MAPPING.get(event.key(), None)
 
-        if msg: self.writeToHost(msg)
-
-
-
-
-
-
-
+        if msg:
+            self.writeToHost(msg)
 
 
 

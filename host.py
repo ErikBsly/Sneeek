@@ -1,12 +1,22 @@
-#%%
 import numpy as np
-import sys, os
+import sys
 
 from PyQt5 import QtWidgets, QtGui, uic
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtCore import QTimer, pyqtSignal, pyqtSlot, QByteArray, QDataStream, QIODevice
 from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
+
+
+# Define direction movements
+DIRECTIONS = {
+    "up": (-1, 0),
+    "down": (1, 0),
+    "left": (0, -1),
+    "right": (0, 1)
+}
+
+RNG = np.random.default_rng()
 
 class SneeekPlayer:
     def __init__(self):
@@ -46,13 +56,13 @@ class SneeekGrid:
         self.grid.fill(0)
 
     def setRandom(self):
-        self.grid = np.random.default_rng().integers(256, size=self._gridSize, dtype=np.uint8)
+        self.grid = RNG.integers(256, size=self._gridSize, dtype=np.uint8)
 
     def randomEmptyField(self):
-        pos = np.random.default_rng().integers(self._gridSize[1]), np.random.default_rng().integers(self._gridSize[0])
+        pos = RNG.integers(self._gridSize[1]), RNG.integers(self._gridSize[0])
         # print(pos, " ", self.grid.shape, " ", self.grid[pos])
         while self.grid[pos] != 0:
-            pos = np.random.default_rng().integers(self._gridSize[1]), np.random.default_rng().integers(self._gridSize[0])
+            pos = RNG.integers(self._gridSize[1]), RNG.integers(self._gridSize[0])
         return pos
 
     def placeTarget(self, n=1):
@@ -103,6 +113,7 @@ class MyApp(QMainWindow):
 
         #self.gameTimer.start(200)
 
+
     def initServer(self):
         self.Server = QTcpServer(self)
         if self.Server.listen(port = self.port):
@@ -115,6 +126,7 @@ class MyApp(QMainWindow):
     def initGame(self):
         self.gameGrid.clearGrid()
         self.gameGrid.placeTarget(3)
+
 
     @pyqtSlot()
     def handleNewConnection(self):
@@ -145,6 +157,7 @@ class MyApp(QMainWindow):
            
             self.writeToClients("gridsize,{},{}".format(*self.gameGrid._gridSize))
 
+
     @pyqtSlot()
     def handleDisconnection(self):
         sender = self.sender()
@@ -157,11 +170,11 @@ class MyApp(QMainWindow):
             except:
                 print("Disconnection error: ", len(self.player), i)
 
+
     @pyqtSlot()
     def readBuffer(self):
-        # find which palyer has sent the signal. Then convert one-element list to scalar
-        sender = self.sender()
-        idx = [i for i,p in enumerate(self.player) if p.socket == sender][0]
+        # find which palyer has sent the signal.
+        idx = next(i for i,p in enumerate(self.player) if p.socket == self.sender())
 
         # append to buffer if there is some leftover from the last transmission
         self.player[idx].rawData += self.player[idx].socket.readAll()
@@ -169,7 +182,8 @@ class MyApp(QMainWindow):
         # print(commands)
         # if command transmission was not finished, so it can be completed on the next incoming transmission
         self.player[idx].rawData = commands[-1]
-        if commands[-1] != b'': del commands[-1]
+        if commands[-1] != b'':
+            del commands[-1]
 
         
         for command in commands:
@@ -180,45 +194,48 @@ class MyApp(QMainWindow):
             if msg.startswith("keypress"):
                 self.player[idx].changeDirection(msg.split(",")[1])
 
-            if msg.startswith("playername"):
+            elif msg.startswith("playername"):
                 self.player[idx].name = msg.split(",")[1]
 
-            if msg.startswith("ready"):
-                self.player[idx].isReady = True if msg.split(",")[1]=="1" else False # ready,1 or ready,0
+            elif msg.startswith("ready"):
+                self.player[idx].isReady = (msg.split(",")[1] == "1") # "ready,1" or "ready,0"
 
-            if msg.startswith("chatmsg"):
+            elif msg.startswith("chatmsg"):
                 newmsg = "chatmsg,<b>" + self.player[idx].name + ":</b> " + msg[8:]
                 self.writeToClients(newmsg)
 
-            if msg.startswith("start"):
-                allready = np.all([self.player[i].isReady for i in range(len(self.player))])
+            elif msg.startswith("startgame"):
+                all_ready = all(plyr.isReady for plyr in self.player)
                      
-                if allready:
+                if all_ready:
                     self.gameHasStarted = True
                     print("Start!")
 
 
     @pyqtSlot()
     def writeToClients(self, msg, encode=True):
-        if encode: msg = msg.encode()
-        if msg[-1] != b'\r': msg += b'\r'
         for i in range(len(self.player)):
-            self.player[i].socket.write(msg)
+            self.writeToPlayer(i, msg, encode)
+
 
     def writeToPlayer(self, idx, msg, encode=True):
-        if encode: msg = msg.encode()
-        if msg[-1] != b'\r': msg += b'\r'
+        if encode:
+            msg = msg.encode()
+        if msg[-1] != b'\r':
+            msg += b'\r'
         self.player[idx].socket.write(msg)
        
+
     def sendImageToClients(self):
         prefix = "canvas,{},{},".format(*self.gameGrid._gridSize).encode()
         content = self.gridColors.tobytes()
         self.writeToClients(prefix+content, encode=False)
 
+
     def sendScoreBoardToClients(self):
         msg = "scoreboard"
-        for i in range(len(self.player)):
-            msg += ",{},{},{},{},{},{}".format(self.player[i].name, self.player[i].length, self.player[i].isReady, *self.player[i].color)
+        for plyr in self.player:
+            msg += ",{},{},{},{},{},{}".format(plyr.name, plyr.length, plyr.isReady, *plyr.color)
 
         self.writeToClients(msg)
 
@@ -230,35 +247,23 @@ class MyApp(QMainWindow):
             for i in range(len(self.player)):
                 if self.player[i].alive:
                     v, pos, newpos = self.player[i].v, self.player[i].pos, None
-                    #-------- shorten that stuff into one if statement!
-                    if v in ["up", "down"]:
-                        newy = pos[0]+1 if v == "down" else pos[0]-1
-                        newpos = newy, self.player[i].pos[1]
-                        if not 0 <= newy < self.gridSize[0]:
+
+                    if v in DIRECTIONS:
+                        dy, dx = DIRECTIONS[v]
+                        newy = pos[0] + dy
+                        newx = pos[1] + dx
+                        newpos = (newy, newx)
+                        
+                        # Check if out of bounds or bit own tail
+                        if (
+                            (not 0 <= newy < self.gridSize[0]) or
+                            (not 0 <= newx < self.gridSize[1]) or
+                            (self.gameGrid.grid[newpos] > 0) # must be last condition because it might be out of bounds
+                        ):
                             self.player[i].alive = False
                             print("Player {} game over".format(self.player[i].id))
                             self.writeToPlayer(i, "gameover")
                             continue
-                        elif self.gameGrid.grid[newpos] > 0:
-                            self.player[i].alive = False
-                            print("Player {} game over".format(self.player[i].id))
-                            self.writeToPlayer(i, "gameover")
-                            continue
-                    #--------------------------------------
-                    if v in ["left", "right"]:
-                        newx = pos[1]+1 if v == "right" else pos[1]-1
-                        newpos = self.player[i].pos[0], newx
-                        if not 0 <= newx < self.gridSize[1]: 
-                            self.player[i].alive = False
-                            print("Player {} game over".format(self.player[i].id))
-                            self.writeToPlayer(i, "gameover")
-                            continue
-                        elif self.gameGrid.grid[newpos] > 0:
-                            self.player[i].alive = False
-                            print("Player {} game over".format(self.player[i].id))
-                            self.writeToPlayer(i, "gameover")
-                            continue
-                    #--------------------------------------
                     # eat!
                     if self.gameGrid.grid[newpos] == -1:
                         self.player[i].length += self.lengthGainPerEat
@@ -270,15 +275,12 @@ class MyApp(QMainWindow):
                     self.gameGrid.grid[self.player[i].pos] = self.player[i].length
                     self.gameGrid.owner[self.player[i].pos] = self.player[i].id
 
-        color_food = (0, 0, 0) # black
-
         self.gridColors.fill(255) # all white
         # draw food
-        self.gridColors[self.gameGrid.grid == -1] = color_food
+        self.gridColors[self.gameGrid.grid == -1] = (0, 0, 0) # black
         # draw snakes
         for i in range(len(self.player)):
             self.gridColors[self.gameGrid.owner == self.player[i].id] = self.player[i].color
-
 
         self.sendImageToClients()
         self.sendScoreBoardToClients()
